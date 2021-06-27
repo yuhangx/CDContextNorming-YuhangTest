@@ -22,9 +22,10 @@ library(readxl)
 #JTD <- read_excel("../具体度/JTD.xlsx")
 JTD <- read_excel("JTD-item-withnumber.xlsx")
 #View(JTD)
+length(unique(JTD$item))
 ```
 
-in total 180 words. should be 180/3= 60 items? 
+60 items 
 
 
 ```{r}
@@ -54,8 +55,63 @@ JTD %>%
 
 ```{r}
 emmeans(m.full,pairwise ~ type, adjust = 'none')
+```
+
+```{r}
+ggplot(JTD,aes(x=type,y=score,color=type,fill=type)) +
+  stat_summary(geom = "point", fun = "mean", aes(colour = type))+
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot",width = 0.1,alpha = 0.6)  
+```
+
+```{r}
+ggplot(JTD,aes(x=type,y=score,color=type,fill=type)) +
+  facet_wrap(~ subject)+
+  stat_summary(geom = "point", fun = "mean", aes(colour = type))+
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot",width = 0.1,alpha = 0.6) +
+  labs(title = "By-subject Plot")
+
+
+ggplot(JTD,aes(x=type,y=score,color=type,fill=type)) +
+  facet_wrap(~ item)+
+  stat_summary(geom = "point", fun = "mean", aes(colour = type))+
+  stat_summary(geom = "errorbar", fun.data = "mean_cl_boot",width = 0.1,alpha = 0.6) +
+  labs(title = "By-item Plot")
 
 ```
+
+
+
+```{r}
+
+JTD.Qum <- read_excel("qunmber.xlsx")
+
+JTD %>%
+    drop_na(score)%>%
+
+  inner_join(y=JTD.Qum)->JTD.Q
+
+
+
+ggplot(JTD.Q,aes(x=Qnum,y=score))+
+
+  geom_smooth(method = "lm")
+
+ggplot(JTD.Q,aes(x=Qnum,y=score,color=type))+
+
+  geom_smooth(method = "lm")
+
+
+ 
+
+
+
+m.full.Q<-lmer(score~Qnum+type+(1+type|subject)+(1+type|item),data=JTD.Q) 
+summary(m.full.Q) 
+emmeans(m.full.Q,pairwise ~ type, adjust = 'none')
+
+```
+
+
 
 # Predictivity 
 ```{r}
