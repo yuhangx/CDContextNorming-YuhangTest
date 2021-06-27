@@ -1,0 +1,105 @@
+---
+title: "CD Follow Up"
+author: "Yuhang Xu"
+date: "6/24/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(emmeans)
+library(lmerTest)
+library(readxl)
+```
+
+
+# Concreteness
+```{r}
+#JTD <- read_excel("../具体度/JTD.xlsx")
+JTD <- read_excel("JTD-item-withnumber.xlsx")
+#View(JTD)
+```
+
+in total 180 words. should be 180/3= 60 items? 
+
+
+```{r}
+JTD$type<-as.factor(JTD$type)
+#contrasts(JTD$type)
+contrasts(JTD$type) = contr.treatment(3,base = 2)
+#contrasts(JTD$type)
+colnames(contrasts(JTD$type))<-c("HH-vs-HL","LL-vs-HL") # HL as the reference level 
+contrasts(JTD$type)
+
+```
+
+
+```{r}
+m.full<-lmer(score~type+(1+type|subject)+(1+type|item),data=JTD) 
+summary(m.full) 
+```
+
+
+```{r}
+JTD %>%
+  #filter(is.na(score))
+  drop_na(score)%>%
+  group_by(type)%>%
+  summarise(MeanRating=mean(as.numeric(score)))
+```
+
+```{r}
+emmeans(m.full,pairwise ~ type, adjust = 'none')
+
+```
+
+# Predictivity 
+```{r}
+keyucexing<-read_excel("keyucexing.xlsx")
+keyucexing$type<-as.factor(keyucexing$type)
+keyucexing$context<-as.factor(keyucexing$context)
+
+#contrasts(keyucexing$type)
+contrasts(keyucexing$type) = contr.treatment(3,base = 2) # HL as the reference level 
+
+colnames(contrasts(keyucexing$type))<-c("HH-vs-HL","LL-vs-HL")
+contrasts(keyucexing$type)
+
+#contrasts(keyucexing$context) #
+contrasts(keyucexing$context) <-contr.sum(2) #contrast coding contex
+#contrasts(keyucexing$context)
+colnames(contrasts(keyucexing$context))<-c("B-vs-N")
+contrasts(keyucexing$context)
+```
+
+
+
+```{r}
+m.full.p<-glmer(score~type*context+(1|Subject)+(1|mubiaoduan),
+                family=binomial,data=keyucexing)
+summary(m.full.p)
+# 这里有同样的问题 item没有标注对！！
+# 什么叫一个item呢？
+```
+
+```{r}
+keyucexing %>%
+  #filter(is.na(score))
+  drop_na(score)%>%
+  group_by(type,context,score)%>%
+  tally() %>%
+  mutate(Proportion = n / sum(n))%>%
+  filter(score==1)
+```
+
+
+```{r}
+emmeans(m.full.p,pairwise ~ type:context, adjust = 'none')
+
+```
+
+
